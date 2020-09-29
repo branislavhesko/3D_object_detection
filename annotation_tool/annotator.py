@@ -1,6 +1,6 @@
 import open3d
 
-from utils.io import load_model
+from utils.data_utils import load_model
 
 
 class Annotator:

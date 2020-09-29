@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from utils.io import make_transformation_matrix
+from utils.data_utils import make_transformation_matrix
 
 
 class DataEntries(Enum):
