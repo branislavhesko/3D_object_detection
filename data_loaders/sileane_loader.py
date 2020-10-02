@@ -85,6 +85,7 @@ class SileaneDataset(Dataset):
 
 if __name__ == "__main__":
     import open3d
+    from kaolin.mathutils import transform3d
     dataset = SileaneDataset("./data/sileane/gear")
     for idx in range(10):
         pcd, gt = dataset[idx]
