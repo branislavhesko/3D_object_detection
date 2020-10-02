@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from scipy.spatial.transform.rotation import Rotation
 
 from utils.data_utils import make_transformation_matrix
 
@@ -34,8 +35,14 @@ def depth_to_pointcloud(depth, rgb_image, config: SileaneConfig):
     mesh_x, mesh_y = np.meshgrid(np.arange(w), np.arange(h))
     x = z / config.fu * (mesh_x - config.cu)
     y = z / config.fv * (mesh_y - config.cv)
-    return torch.from_numpy(np.concatenate((x.reshape((-1, 1)), y.reshape((-1, 1)), z.reshape((-1, 1)),
-                                            rgb_image.reshape(-1, 3)), axis=1))
+    pcd = torch.from_numpy(np.concatenate((x.reshape((-1, 1)), y.reshape((-1, 1)), z.reshape((-1, 1)),
+                                           rgb_image.reshape(-1, 3)), axis=1))
+    rot = Rotation.from_quat([1, -2.57382e-009, 7.85847e-010, 8.73554e-008]).as_matrix()
+    temp = np.eye(4)
+    temp[:3, :3] = rot
+    pcd = pcd - torch.tensor([+0.075, 0, 2, 0, 0, 0]).float()
+    pcd[:, :3] = transform3d(kaolin.mathutils.homogenize_points(pcd[:, :3]).float(), torch.from_numpy(temp).float())
+    return pcd
 
 
 class SileaneDataset(Dataset):
@@ -57,7 +64,7 @@ class SileaneDataset(Dataset):
 
     def _load_images_depths(self):
         images = sorted(glob.glob(os.path.join(self._path, "rgb", "*.PNG")))
-        depths = sorted(glob.glob(os.path.join(self._path, "depth_gt", "*.PNG")))
+        depths = sorted(glob.glob(os.path.join(self._path, "depth", "*.PNG")))
         gt_pos = sorted(glob.glob(os.path.join(self._path, "gt", "*.json")))
         return {
             DataEntries.IMAGES: images,
@@ -75,6 +82,7 @@ class SileaneDataset(Dataset):
         assert os.path.basename(imagef[:-4]) == os.path.basename(depthf)[:-4] == os.path.basename(gtf)[:-5]
         image = cv2.cvtColor(cv2.imread(imagef, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
         depth = cv2.imread(depthf, cv2.IMREAD_UNCHANGED) / (2 ** 16)
+        print(f"min: {np.amin(depth)}, max: {np.amax(depth)}")
         pcd = depth_to_pointcloud(depth, image, self._config)
         with open(gtf, "r") as file:
             gt = json.load(file)
@@ -94,4 +102,9 @@ if __name__ == "__main__":
         pcd, gt = dataset[idx]
         p = open3d.geometry.PointCloud()
         p.points = open3d.utility.Vector3dVector(pcd.numpy()[:, :3])
-        open3d.visualization.draw_geometries([p])
+        pcds = [p]
+        for g in gt:
+            k = open3d.geometry.PointCloud()
+            k.points = open3d.utility.Vector3dVector(transform3d(model.float(), g.float()).numpy())
+            pcds.append(k)
+        open3d.visualization.draw_geometries(pcds)
