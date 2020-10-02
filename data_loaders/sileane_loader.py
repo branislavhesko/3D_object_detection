@@ -74,7 +74,7 @@ class SileaneDataset(Dataset):
                            self._data[DataEntries.GTS][item]
         assert os.path.basename(imagef[:-4]) == os.path.basename(depthf)[:-4] == os.path.basename(gtf)[:-5]
         image = cv2.cvtColor(cv2.imread(imagef, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
-        depth = cv2.imread(depthf, cv2.IMREAD_GRAYSCALE) / 255.
+        depth = cv2.imread(depthf, cv2.IMREAD_UNCHANGED) / (2 ** 16)
         pcd = depth_to_pointcloud(depth, image, self._config)
         with open(gtf, "r") as file:
             gt = json.load(file)
@@ -85,8 +85,11 @@ class SileaneDataset(Dataset):
 
 if __name__ == "__main__":
     import open3d
+    import kaolin
     from kaolin.mathutils import transform3d
+    from utils.data_utils import load_model
     dataset = SileaneDataset("./data/sileane/gear")
+    model = kaolin.mathutils.homogenize_points(torch.from_numpy(load_model("./data/sileane/gear/mesh.ply")))
     for idx in range(10):
         pcd, gt = dataset[idx]
         p = open3d.geometry.PointCloud()
