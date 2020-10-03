@@ -10,7 +10,8 @@ class Config:
     batch_size = 2
     num_workers = 8
     image_shape = (512, 512)
-
+    model_path = "./data/sileane/gear/mesh.ply"
+    path = "./data/sileane/gear"
 
 class SegmentationConfig(Config):
     processed_z_size = 128
