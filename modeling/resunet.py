@@ -244,3 +244,11 @@ class ResUNetIN2D(ResUNetBN2D):
 class ResUNetIN2E(ResUNetBN2E):
     NORM_TYPE = 'BN'
     BLOCK_NORM_TYPE = 'IN'
+
+
+RESUNET_MODELS = {
+    "ResUNetBN2": ResUNetBN2,
+    "ResUNetBN2B": ResUNetBN2B,
+    "ResUNetIN2E": ResUNetIN2E,
+    "ResUNetBN2E": ResUNetBN2E,
+}
