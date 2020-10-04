@@ -13,7 +13,7 @@ class FeatureTrainer(BaseTrainer):
         self._model: ResUNet2 = RESUNET_MODELS[self._config.model](in_channels=self._config.in_channels,
                                                                    out_channels=self._config.out_channels,
                                                                    conv1_kernel_size=self._config.conv1_kernel_size)
-        self._optimizer = torch.optim.Adam(params=self._model.params(), lr=self._config.training.learning_rate,
+        self._optimizer = torch.optim.Adam(params=self._model.parameters(), lr=self._config.training.learning_rate,
                                            weight_decay=self._config.training.weight_decay)
 
     def _train_single_epoch(self, epoch):
