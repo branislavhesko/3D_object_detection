@@ -26,6 +26,7 @@ class FeatureConfig:
     normalize_features = True
     conv1_kernel_size = 5
     training = DefaultTraining()
+    limit_positive_distance = 5
 
 
 class SegmentationConfig(Config):
