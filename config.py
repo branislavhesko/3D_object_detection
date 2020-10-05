@@ -27,6 +27,8 @@ class FeatureConfig:
     conv1_kernel_size = 5
     training = DefaultTraining()
     limit_positive_distance = 5
+    num_negative_pairs = 1024
+    num_positive_pairs = 2048
 
 
 class SegmentationConfig(Config):
