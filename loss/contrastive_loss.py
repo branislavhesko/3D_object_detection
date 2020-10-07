@@ -24,7 +24,7 @@ class PositiveContrastiveLoss(torch.nn.Module):
     def forward(self, features_gt, features_object):
         pass
 
-    def _find_closest_points(self, coords_gt, coords_object):
+    def find_closest_points(self, coords_gt, coords_object):
         distance = torch.sqrt(torch.pow(coords_gt.unsqueeze(0) - coords_object.unsqueeze(1), 2).sum(-1))
         closest_points = torch.argmin(distance, dim=1)
         picked_gts = torch.arange(coords_gt.shape[0])
@@ -40,15 +40,22 @@ class NegativeContrastiveLoss(torch.nn.Module):
     def forward(self, features_model, features_pointcloud):
         pass
 
-    def _find_furthest_points(self, coords_gt, coords_object):
+    def find_furthest_points(self, coords_gt, coords_object):
         distance = torch.sqrt(torch.pow(coords_gt.unsqueeze(0) - coords_object.unsqueeze(1), 2).sum(-1))
         furthest_points = torch.argmax(distance, dim=1)
         picked_gts = torch.arange(coords_gt.shape[0])
         return picked_gts, furthest_points
 
-    def _find_model_opposite_points(self, coords_gt, coords_object):
-        negative_points = np.choice(coords_gt.shape[0], self._config.num_negative_pairs)
+    def find_model_opposite_points(self, coords_gt, coords_object):
+        negative_points = np.random.choice(coords_gt.shape[0], self._config.num_negative_pairs)
         distance = torch.sqrt(torch.pow(coords_gt.unsqueeze(0) - coords_gt.unsqueeze(1), 2).sum(-1))
-        random_distribution = torch.distributions.exponential.Exponential([2.])
-        distance *= random_distribution.sample(sample_shape=distance.shape)
+        random_distribution = torch.distributions.exponential.Exponential(rate=5.)
+        distance *= (1 - random_distribution.sample(sample_shape=distance.shape))
         furthest_points = torch.argmax(distance, dim=1)
+        picked_gts = torch.arange(coords_gt.shape[0])
+        return picked_gts, furthest_points
+
+
+if __name__ == "__main__":
+    neg = PositiveContrastiveLoss(FeatureConfig())
+    neg.find_closest_points(torch.randint(low=0, high=100, size=(100, 3)).float(), torch.randint(low=0, high=100, size=(100, 3)).float())
