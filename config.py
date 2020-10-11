@@ -29,6 +29,7 @@ class FeatureConfig:
     limit_positive_distance = 5
     num_negative_pairs = 1024
     num_positive_pairs = 2048
+    neg_coef = 3.
 
 
 class SegmentationConfig(Config):
