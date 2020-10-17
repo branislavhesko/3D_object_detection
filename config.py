@@ -12,6 +12,7 @@ class Config:
     image_shape = (512, 512)
     model_path = "./data/sileane/gear/mesh.ply"
     path = "./data/sileane/gear"
+    validation_frequency = 5
 
 
 class DefaultTraining:
@@ -19,7 +20,7 @@ class DefaultTraining:
     weight_decay = 1e-4
 
 
-class FeatureConfig:
+class FeatureConfig(Config):
     in_channels = 1
     out_channels = 64
     model = "ResUNetBN2E"
@@ -30,6 +31,7 @@ class FeatureConfig:
     num_negative_pairs = 1024
     num_positive_pairs = 2048
     neg_coef = 3.
+    use_uniform_features = True
 
 
 class SegmentationConfig(Config):

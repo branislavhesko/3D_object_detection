@@ -11,6 +11,7 @@ from scipy.spatial.transform.rotation import Rotation
 
 from config import Config
 from utils.data_utils import load_model, make_transformation_matrix
+from utils.transforms import homogenize_points
 
 
 class DataEntries(Enum):
@@ -40,16 +41,17 @@ def depth_to_pointcloud(depth, rgb_image, config: SileaneConfig, transformation_
     y = z / config.fv[0] * (mesh_y - config.cv[0])
     pcd = torch.from_numpy(np.concatenate((x.reshape((-1, 1)), y.reshape((-1, 1)), z.reshape((-1, 1)),
                                            rgb_image.reshape(-1, 3)), axis=1))
-    pcd[:, :3] = transform3d(kaolin.mathutils.homogenize_points(pcd[:, :3]).float(), transformation_matrix)
+    pcd[:, :3] = transform3d(homogenize_points(pcd[:, :3]).float(), transformation_matrix)
     return pcd
 
 
 class SileaneDataset(Dataset):
     def __init__(self, config):
+        self._config = config
         self._path = config.path
         self._camera_config = self._load_camera_config()
         self._data = self._load_images_depths()
-        self._model = kaolin.mathutils.homogenize_points(load_model(config.model_path))
+        self._model = homogenize_points(load_model(config.model_path))
         print(self._data)
 
     def _load_camera_config(self):
@@ -97,9 +99,15 @@ class SileaneDataset(Dataset):
         with open(gtf, "r") as file:
             gt = json.load(file)
         gt = [np.expand_dims(make_transformation_matrix(entry), axis=0) for entry in gt]
-        gt = np.concatenate(gt, axis=0) if len(gt) else np.empty((0))
+        gt = np.concatenate(gt, axis=0) if len(gt) else np.empty(0)
         gt = torch.from_numpy(gt).float()
-        return pcd.float(), self._make_gt_pcd(gt), gt
+        gt_pcd = self._make_gt_pcd(gt)
+        if self._config.use_uniform_features:
+            pcd_feats = torch.ones(pcd.shape[0])
+        else:
+            pcd_feats = pcd[:, 3:]
+        gt_feats = torch.ones(gt_pcd.shape[0])
+        return pcd[:, :3].float(), gt_pcd, pcd_feats, gt_feats, gt
 
     def _make_gt_pcd(self, gts):
         points = []
@@ -110,17 +118,16 @@ class SileaneDataset(Dataset):
 
 if __name__ == "__main__":
     import open3d
-    import kaolin
-    from kaolin.mathutils import transform3d
+    from utils.transforms import transform3d
     dataset = SileaneDataset(Config())
-    model = kaolin.mathutils.homogenize_points(load_model("./data/sileane/gear/mesh.ply"))
+    model = homogenize_points(load_model("./data/sileane/gear/mesh.ply"))
     for idx in range(10):
-        pcd, model_gt, gt = dataset[idx]
+        pcd, model_gt, gt_ = dataset[idx]
         print(model_gt.shape)
         p = open3d.geometry.PointCloud()
         p.points = open3d.utility.Vector3dVector(pcd.numpy()[:, :3])
         pcds = [p]
-        for g in gt:
+        for g in gt_:
             k = open3d.geometry.PointCloud()
             k.points = open3d.utility.Vector3dVector(transform3d(model.float(), g.float()).numpy())
             pcds.append(k)

@@ -19,10 +19,6 @@ def make_transformation_matrix(vectors_dict):
     return matrix
 
 
-if __name__ == "__main__":
-    load_model("./data/sileane/gear/mesh.ply")
-
-
 def find_negative_matches(coords_gt, coords_object, positive_distance_limit):
     distance = torch.sqrt(torch.pow(coords_gt - coords_object, 2).sum(-1))
     return coords_gt[distance > positive_distance_limit, ...], coords_object[distance > positive_distance_limit, ...]

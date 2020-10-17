@@ -15,6 +15,13 @@ class FeatureTrainer(BaseTrainer):
                                                                    conv1_kernel_size=self._config.conv1_kernel_size)
         self._optimizer = torch.optim.Adam(params=self._model.parameters(), lr=self._config.training.learning_rate,
                                            weight_decay=self._config.training.weight_decay)
+        self._data_loaders = {}
+
+    def train(self, num_epochs):
+        for epoch in range(num_epochs):
+            self._train_single_epoch(epoch=epoch)
+            if epoch % self._config.validation_frequency:
+                self._validate(epoch)
 
     def _train_single_epoch(self, epoch):
         pass
