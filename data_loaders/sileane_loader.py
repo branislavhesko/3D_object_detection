@@ -120,14 +120,14 @@ class SileaneDataset(Dataset):
         return torch.cat(points, dim=0) if len(points) else torch.zeros(0, 3)
 
     def _get_pairs(self, pcd, gt):
-        pcd_positive_choice_ids = np.random.choice(pcd.shape[0], self._config.num_positive_pairs)
+        pcd_positive_choice_ids = np.random.choice(pcd.shape[0], self._config.num_positive_pairs * 10)
         gt_positive_choice_ids = np.random.choice(gt.shape[0], self._config.num_positive_pairs)
         pcd_negative_choice_ids = np.random.choice(pcd.shape[0], self._config.num_negative_pairs)
         gt_negative_choice_ids = np.random.choice(gt.shape[0], self._config.num_negative_pairs)
         neg_gt, neg_pcd = find_negative_matches(gt[gt_negative_choice_ids, :],
                                                 pcd[pcd_negative_choice_ids, :], self._config.limit_positive_distance)
-        pos_gt, pos_pcd = find_positive_matches(gt[gt_positive_choice_ids, :],
-                                                pcd[pcd_positive_choice_ids, :3], self._config.limit_positive_distance)
+        pos_gt, pos_pcd = find_positive_matches(gt[gt_positive_choice_ids, :], pcd[pcd_positive_choice_ids, :],
+                                                self._config.limit_positive_distance)
 
 if __name__ == "__main__":
     import open3d
@@ -142,6 +142,7 @@ if __name__ == "__main__":
         pcds = [p]
         for g in gt_:
             k = open3d.geometry.PointCloud()
-            k.points = open3d.utility.Vector3dVector(transform3d(model.float(), g.float()).numpy())
+            k.points = open3d.utility.Vector3dVector(model_gt)
+            k.paint_uniform_color([0, 1, 0])
             pcds.append(k)
         open3d.visualization.draw_geometries(pcds)

@@ -32,12 +32,12 @@ def find_model_opposite_points(coords_gt, coords_object, positive_distance_limit
     return coords_gt, find_positive_matches(coords_gt[furthest_points], coords_object, positive_distance_limit)[1]
 
 
-def find_positive_matches(coords_gt, coords_object, positive_distance_limit):
-    distance = torch.sqrt(torch.pow(coords_gt.unsqueeze(0) - coords_object.unsqueeze(1), 2).sum(-1))
-    closest_points = torch.argmin(distance, dim=1)
+def find_positive_matches(coords_gt, pcd, positive_distance_limit):
+    distance = torch.sqrt(torch.pow(coords_gt.unsqueeze(0) - pcd.unsqueeze(1), 2).sum(-1))
+    closest_points = torch.argmin(distance, dim=0)
     picked_gts = torch.arange(coords_gt.shape[0])
-    correct_idx = torch.where((distance[picked_gts, closest_points] < positive_distance_limit))
-    return coords_gt[picked_gts[correct_idx]], coords_object[closest_points[correct_idx]]
+    correct_idx = torch.where(torch.tensor(distance[closest_points, picked_gts] < positive_distance_limit))
+    return coords_gt[picked_gts[correct_idx]], pcd[closest_points[correct_idx]]
 
 
 def distance(feats1, feats2, type_="L2"):
