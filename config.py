@@ -32,6 +32,7 @@ class FeatureConfig(Config):
     num_positive_pairs = 2048
     neg_coef = 3.
     use_uniform_features = True
+    meters_to_millimeters = 1000
 
 
 class SegmentationConfig(Config):

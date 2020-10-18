@@ -9,8 +9,9 @@ import torch
 from torch.utils.data import Dataset
 from scipy.spatial.transform.rotation import Rotation
 
-from config import Config
-from utils.data_utils import load_model, make_transformation_matrix
+from config import Config, FeatureConfig
+from utils.data_utils import (
+    load_model, make_transformation_matrix, find_model_opposite_points, find_negative_matches, find_positive_matches)
 from utils.transforms import homogenize_points
 
 
@@ -46,7 +47,7 @@ def depth_to_pointcloud(depth, rgb_image, config: SileaneConfig, transformation_
 
 
 class SileaneDataset(Dataset):
-    def __init__(self, config):
+    def __init__(self, config: FeatureConfig):
         self._config = config
         self._path = config.path
         self._camera_config = self._load_camera_config()
@@ -99,7 +100,7 @@ class SileaneDataset(Dataset):
         with open(gtf, "r") as file:
             gt = json.load(file)
         gt = [np.expand_dims(make_transformation_matrix(entry), axis=0) for entry in gt]
-        gt = np.concatenate(gt, axis=0) if len(gt) else np.empty(0)
+        gt = np.concatenate(gt, axis=0) if len(gt) else np.expand_dims(np.eye(4), 0)
         gt = torch.from_numpy(gt).float()
         gt_pcd = self._make_gt_pcd(gt)
         if self._config.use_uniform_features:
@@ -107,6 +108,9 @@ class SileaneDataset(Dataset):
         else:
             pcd_feats = pcd[:, 3:]
         gt_feats = torch.ones(gt_pcd.shape[0])
+        gt_pcd *= self._config.meters_to_millimeters
+        pcd *= self._config.meters_to_millimeters
+        self._get_pairs(pcd[:, :3], gt_pcd)
         return pcd[:, :3].float(), gt_pcd, pcd_feats, gt_feats, gt
 
     def _make_gt_pcd(self, gts):
@@ -115,14 +119,23 @@ class SileaneDataset(Dataset):
             points.append(transform3d(self._model, gt.float()))
         return torch.cat(points, dim=0) if len(points) else torch.zeros(0, 3)
 
+    def _get_pairs(self, pcd, gt):
+        pcd_positive_choice_ids = np.random.choice(pcd.shape[0], self._config.num_positive_pairs)
+        gt_positive_choice_ids = np.random.choice(gt.shape[0], self._config.num_positive_pairs)
+        pcd_negative_choice_ids = np.random.choice(pcd.shape[0], self._config.num_negative_pairs)
+        gt_negative_choice_ids = np.random.choice(gt.shape[0], self._config.num_negative_pairs)
+        neg_gt, neg_pcd = find_negative_matches(gt[gt_negative_choice_ids, :],
+                                                pcd[pcd_negative_choice_ids, :], self._config.limit_positive_distance)
+        pos_gt, pos_pcd = find_positive_matches(gt[gt_positive_choice_ids, :],
+                                                pcd[pcd_positive_choice_ids, :3], self._config.limit_positive_distance)
 
 if __name__ == "__main__":
     import open3d
     from utils.transforms import transform3d
-    dataset = SileaneDataset(Config())
+    dataset = SileaneDataset(FeatureConfig())
     model = homogenize_points(load_model("./data/sileane/gear/mesh.ply"))
     for idx in range(10):
-        pcd, model_gt, gt_ = dataset[idx]
+        pcd, model_gt, feats_, feats_gt, gt_ = dataset[idx]
         print(model_gt.shape)
         p = open3d.geometry.PointCloud()
         p.points = open3d.utility.Vector3dVector(pcd.numpy()[:, :3])
