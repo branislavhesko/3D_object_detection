@@ -110,8 +110,8 @@ class SileaneDataset(Dataset):
         gt_feats = torch.ones(gt_pcd.shape[0])
         gt_pcd *= self._config.meters_to_millimeters
         pcd *= self._config.meters_to_millimeters
-        self._get_pairs(pcd[:, :3], gt_pcd)
-        return pcd[:, :3].float(), gt_pcd, pcd_feats, gt_feats, gt
+        pairs = self._get_pairs(pcd[:, :3], gt_pcd)
+        return pcd[:, :3].float(), gt_pcd, pcd_feats, gt_feats, pairs, gt
 
     def _make_gt_pcd(self, gts):
         points = []
@@ -125,9 +125,19 @@ class SileaneDataset(Dataset):
         pcd_negative_choice_ids = np.random.choice(pcd.shape[0], self._config.num_negative_pairs)
         gt_negative_choice_ids = np.random.choice(gt.shape[0], self._config.num_negative_pairs)
         neg_gt, neg_pcd = find_negative_matches(gt[gt_negative_choice_ids, :],
-                                                pcd[pcd_negative_choice_ids, :], self._config.limit_positive_distance)
+                                                pcd[pcd_negative_choice_ids, :], gt_indices=gt_negative_choice_ids,
+                                                obj_indices=pcd_negative_choice_ids,
+                                                positive_distance_limit=self._config.limit_positive_distance)
         pos_gt, pos_pcd = find_positive_matches(gt[gt_positive_choice_ids, :], pcd[pcd_positive_choice_ids, :],
                                                 self._config.limit_positive_distance)
+        neg2_gt, neg2_pcd = find_model_opposite_points(gt[gt_negative_choice_ids, :], pcd,
+                                                       positive_distance_limit=self._config.limit_positive_distance)
+
+        return {
+            "pos_indices": (pos_gt, pos_pcd),
+            "neg_indices": (torch.cat([neg_gt, neg2_gt], 0), torch.cat([neg_pcd, neg2_pcd], 0))
+        }
+
 
 if __name__ == "__main__":
     import open3d
