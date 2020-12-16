@@ -25,7 +25,7 @@ def find_negative_matches(coords_gt, coords_object, gt_indices, obj_indices, pos
            torch.from_numpy(obj_indices[distance > positive_distance_limit])
 
 
-def find_model_opposite_points(coords_gt, coords_object, positive_distance_limit, max_size=1e5):
+def find_model_opposite_points(coords_gt, coords_object, positive_distance_limit, max_size=5e4):
     distance = torch.sqrt(torch.pow(coords_gt.unsqueeze(0) - coords_gt.unsqueeze(1), 2).sum(-1))
     random_distribution = torch.distributions.exponential.Exponential(rate=5.)
     distance *= (1 - random_distribution.sample(sample_shape=distance.shape))
@@ -37,11 +37,13 @@ def find_model_opposite_points(coords_gt, coords_object, positive_distance_limit
 
 
 def find_positive_matches(coords_gt, pcd, positive_distance_limit):
-    distance = torch.sqrt(torch.pow(coords_gt.unsqueeze(0) - pcd.unsqueeze(1), 2).sum(-1))
+    c = coords_gt.cuda()
+    p = pcd.cuda()
+    distance = torch.sqrt(torch.pow(c.unsqueeze(0) - p.unsqueeze(1), 2).sum(-1))
     closest_points = torch.argmin(distance, dim=0)
-    picked_gts = torch.arange(coords_gt.shape[0])
-    correct_idx = torch.where(torch.tensor(distance[closest_points, picked_gts] < positive_distance_limit))
-    return picked_gts[correct_idx], closest_points[correct_idx]
+    picked_gts = torch.arange(c.shape[0])
+    correct_idx = torch.where(distance[closest_points, picked_gts] < positive_distance_limit)
+    return picked_gts[correct_idx].cpu(), closest_points[correct_idx].cpu()
 
 
 def distance(feats1, feats2, type_="L2"):

@@ -12,7 +12,7 @@ from scipy.spatial.transform.rotation import Rotation
 from config import Config, FeatureConfig
 from utils.data_utils import (
     load_model, make_transformation_matrix, find_model_opposite_points, find_negative_matches, find_positive_matches)
-from utils.transforms import homogenize_points
+from utils.transforms import homogenize_points, transform3d
 
 
 class DataEntries(Enum):
@@ -94,7 +94,6 @@ class SileaneDataset(Dataset):
         assert os.path.basename(imagef[:-4]) == os.path.basename(depthf)[:-4] == os.path.basename(gtf)[:-5]
         image = cv2.cvtColor(cv2.imread(imagef, cv2.IMREAD_COLOR), cv2.COLOR_BGR2RGB)
         depth = cv2.imread(depthf, cv2.IMREAD_UNCHANGED) / (2 ** 16)
-        print(f"min: {np.amin(depth)}, max: {np.amax(depth)}")
         pcd = depth_to_pointcloud(depth, image, self._camera_config, self._make_camera_transform(
             self._camera_config.rotation, self._camera_config.location))
         with open(gtf, "r") as file:
@@ -110,8 +109,9 @@ class SileaneDataset(Dataset):
         gt_feats = torch.ones(gt_pcd.shape[0])
         gt_pcd *= self._config.meters_to_millimeters
         pcd *= self._config.meters_to_millimeters
+
         pairs = self._get_pairs(pcd[:, :3], gt_pcd)
-        return pcd[:, :3].float(), gt_pcd, pcd_feats, gt_feats, pairs, gt
+        return pcd[:, :3].float(), gt_pcd, pcd_feats, gt_feats, pairs["pos_indices"], pairs["neg_indices"], gt
 
     def _make_gt_pcd(self, gts):
         points = []
@@ -132,20 +132,19 @@ class SileaneDataset(Dataset):
                                                 self._config.limit_positive_distance)
         neg2_gt, neg2_pcd = find_model_opposite_points(gt[gt_negative_choice_ids, :], pcd,
                                                        positive_distance_limit=self._config.limit_positive_distance)
-
+        print("NEG shape {}".format(neg2_gt.shape))
         return {
-            "pos_indices": (pos_gt, pos_pcd),
-            "neg_indices": (torch.cat([neg_gt, neg2_gt], 0), torch.cat([neg_pcd, neg2_pcd], 0))
+            "pos_indices": torch.stack([pos_gt, pos_pcd], dim=1),
+            "neg_indices": torch.stack((torch.cat([neg_gt, neg2_gt], 0), torch.cat([neg_pcd, neg2_pcd], 0)), dim=1)
         }
 
 
 if __name__ == "__main__":
     import open3d
-    from utils.transforms import transform3d
     dataset = SileaneDataset(FeatureConfig())
     model = homogenize_points(load_model("./data/sileane/gear/mesh.ply"))
     for idx in range(10):
-        pcd, model_gt, feats_, feats_gt, gt_ = dataset[idx]
+        pcd, model_gt, feats_, feats_gt, _, _, gt_ = dataset[idx]
         print(model_gt.shape)
         p = open3d.geometry.PointCloud()
         p.points = open3d.utility.Vector3dVector(pcd.numpy()[:, :3])

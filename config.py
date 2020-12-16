@@ -8,7 +8,7 @@ class Mode(Enum):
 
 class Config:
     batch_size = 2
-    num_workers = 8
+    num_workers = 2
     image_shape = (512, 512)
     model_path = "./data/sileane/gear/mesh.ply"
     path = "./data/sileane/gear"
@@ -29,7 +29,7 @@ class FeatureConfig(Config):
     training = DefaultTraining()
     limit_positive_distance = 5
     num_negative_pairs = 1024
-    num_positive_pairs = 2048
+    num_positive_pairs = 1024
     neg_coef = 3.
     use_uniform_features = True
     meters_to_millimeters = 1000
