@@ -1,3 +1,5 @@
+from enum import auto, Enum
+
 import MinkowskiEngine as ME
 import numpy as np
 import torch
@@ -5,6 +7,17 @@ from torch.utils.data import DataLoader
 
 from config import FeatureConfig, Mode
 from data_loaders.sileane_loader import SileaneDataset
+
+
+class DataKeys(Enum):
+    PCD_COORDS = auto()
+    PCD_FEATURES = auto()
+    GT_COORDS = auto()
+    GT_FEATURES = auto()
+    NEG_INDICES = auto()
+    POS_INDICES = auto()
+    GT_TRANSFORMATION = auto()
+    BATCH_LENGTH = auto()
 
 
 def collate_pair_fn(list_data):
@@ -45,14 +58,14 @@ def collate_pair_fn(list_data):
     neg_indices_batch = torch.cat(neg_indices_batch, 0).int()
 
     return {
-        'pcd_coords': coords_batch0,
-        'pcd_feats': feats_batch0.float(),
-        'gt_coords': coords_batch1,
-        'gt_feats': feats_batch1.float(),
-        'neg_indices': neg_indices_batch,
-        'pos_indices': pos_indices_batch,
-        'gt_transformation': trans_batch,
-        'len_batch': len_batch
+        DataKeys.PCD_COORDS: coords_batch0,
+        DataKeys.PCD_FEATURES: feats_batch0.float(),
+        DataKeys.GT_COORDS: coords_batch1,
+        DataKeys.GT_FEATURES: feats_batch1.float(),
+        DataKeys.NEG_INDICES: neg_indices_batch,
+        DataKeys.POS_INDICES: pos_indices_batch,
+        DataKeys.GT_TRANSFORMATION: trans_batch,
+        DataKeys.BATCH_LENGTH: len_batch
     }
 
 

@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import logging
 
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 
@@ -9,6 +10,7 @@ class BaseTrainer(metaclass=ABCMeta):
     def __init__(self, config, *args, **kwargs):
         self._logger = logging.getLogger(self.__class__.__name__)
         self._config = config
+        self._writer = SummaryWriter()
 
     def train(self, num_epochs):
         for epoch in tqdm(range(num_epochs)):

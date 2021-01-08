@@ -4,6 +4,7 @@ import os
 import torch
 
 from config import FeatureConfig, Mode
+from data_loaders.loader_utils import get_data_loaders
 from modeling.resunet import ResUNet2, RESUNET_MODELS
 from training.base_trainer import BaseTrainer
 
@@ -17,9 +18,7 @@ class FeatureTrainer(BaseTrainer):
                                                                    conv1_kernel_size=self._config.conv1_kernel_size)
         self._optimizer = torch.optim.Adam(params=self._model.parameters(), lr=self._config.training.learning_rate,
                                            weight_decay=self._config.training.weight_decay)
-        self._data_loaders = {
-            Mode.train: []
-        }
+        self._data_loaders = get_data_loaders(config=config)
 
     def save(self):
         pass
