@@ -128,7 +128,7 @@ class SileaneDataset(Dataset):
                                                 pcd[pcd_negative_choice_ids, :], gt_indices=gt_negative_choice_ids,
                                                 obj_indices=pcd_negative_choice_ids,
                                                 positive_distance_limit=self._config.limit_positive_distance)
-        pos_gt, pos_pcd = find_positive_matches(gt[gt_positive_choice_ids, :], pcd[pcd_positive_choice_ids, :],
+        pos_gt, pos_pcd, _ = find_positive_matches(gt[gt_positive_choice_ids, :], pcd[pcd_positive_choice_ids, :],
                                                 self._config.limit_positive_distance)
         neg2_gt, neg2_pcd = find_model_opposite_points(gt[gt_negative_choice_ids, :], pcd,
                                                        positive_distance_limit=self._config.limit_positive_distance)
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     dataset = SileaneDataset(FeatureConfig())
     model = homogenize_points(load_model("./data/sileane/gear/mesh.ply"))
     for idx in range(10):
-        pcd, model_gt, feats_, feats_gt, _, _, gt_ = dataset[idx]
+        pcd, model_gt, feats_, feats_gt, pos, neg, gt_ = dataset[idx]
         print(model_gt.shape)
         p = open3d.geometry.PointCloud()
         p.points = open3d.utility.Vector3dVector(pcd.numpy()[:, :3])
