@@ -115,7 +115,7 @@ class SileaneDataset(Dataset):
 
         gt_feats, gt_pcd, pcd, pcd_feats = self._sparse_quantize(gt_feats, gt_pcd, pcd, pcd_feats)
         pairs = self._get_pairs(pcd.float(), gt_pcd.float())
-        return pcd.float(), gt_pcd, pcd_feats, gt_feats, pairs["pos_indices"], pairs["neg_indices"], gt
+        return pcd.float(), gt_pcd, pcd_feats, gt_feats, pairs["pos_indices"].long(), pairs["neg_indices"].long(), gt
 
     def _sparse_quantize(self, gt_feats, gt_pcd, pcd, pcd_feats):
         pcd, pcd_feats = sparse_quantize(pcd, pcd_feats, quantization_size=self._config.quantization_size)

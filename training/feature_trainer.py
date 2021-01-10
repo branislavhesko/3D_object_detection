@@ -6,6 +6,7 @@ import torch
 
 from config import FeatureConfig, Mode
 from data_loaders.loader_utils import get_data_loaders, DataKeys
+from loss.contrastive_loss import ContrastiveLoss
 from modeling.resunet import ResUNet2, RESUNET_MODELS
 from training.base_trainer import BaseTrainer
 
@@ -21,6 +22,7 @@ class FeatureTrainer(BaseTrainer):
         self._optimizer = torch.optim.Adam(params=self._model.parameters(), lr=self._config.training.learning_rate,
                                            weight_decay=self._config.training.weight_decay)
         self._data_loaders = get_data_loaders(config=config)
+        self._loss = ContrastiveLoss(self._config)
 
     def save(self):
         pass
@@ -43,6 +45,8 @@ class FeatureTrainer(BaseTrainer):
                 features=data[DataKeys.GT_FEATURES]))
             pcd_output = self._model(
                 ME.SparseTensor(coordinates=data[DataKeys.PCD_COORDS], features=data[DataKeys.PCD_FEATURES]))
+            loss = self._loss(gt_output.F, pcd_output.F, data[DataKeys.POS_INDICES], data[DataKeys.NEG_INDICES])
+            print(loss.item())
 
     def _validate(self, epoch):
         pass
