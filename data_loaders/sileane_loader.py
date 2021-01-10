@@ -4,6 +4,7 @@ import json
 import os
 
 import cv2
+from MinkowskiEngine.utils import sparse_quantize
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -103,15 +104,23 @@ class SileaneDataset(Dataset):
         gt = torch.from_numpy(gt).float()
         gt_pcd = self._make_gt_pcd(gt)
         if self._config.use_uniform_features:
-            pcd_feats = torch.ones(pcd.shape[0])
+            pcd_feats = torch.ones(pcd.shape[0], 1)
+            pcd = pcd[:, :3]
         else:
             pcd_feats = pcd[:, 3:]
-        gt_feats = torch.ones(gt_pcd.shape[0])
+            pcd = pcd[:, :3]
+        gt_feats = torch.ones(gt_pcd.shape[0], 1)
         gt_pcd *= self._config.meters_to_millimeters
         pcd *= self._config.meters_to_millimeters
 
-        pairs = self._get_pairs(pcd[:, :3], gt_pcd)
-        return pcd[:, :3].float(), gt_pcd, pcd_feats, gt_feats, pairs["pos_indices"], pairs["neg_indices"], gt
+        gt_feats, gt_pcd, pcd, pcd_feats = self._sparse_quantize(gt_feats, gt_pcd, pcd, pcd_feats)
+        pairs = self._get_pairs(pcd.float(), gt_pcd.float())
+        return pcd.float(), gt_pcd, pcd_feats, gt_feats, pairs["pos_indices"], pairs["neg_indices"], gt
+
+    def _sparse_quantize(self, gt_feats, gt_pcd, pcd, pcd_feats):
+        pcd, pcd_feats = sparse_quantize(pcd, pcd_feats, quantization_size=self._config.quantization_size)
+        gt_pcd, gt_feats = sparse_quantize(gt_pcd, gt_feats, quantization_size=self._config.quantization_size)
+        return gt_feats, gt_pcd, pcd, pcd_feats
 
     def _make_gt_pcd(self, gts):
         points = []
@@ -134,8 +143,11 @@ class SileaneDataset(Dataset):
                                                        positive_distance_limit=self._config.limit_positive_distance)
         print("NEG shape {}".format(neg2_gt.shape))
         return {
-            "pos_indices": torch.stack([pos_gt, pos_pcd], dim=1),
-            "neg_indices": torch.stack((torch.cat([neg_gt, neg2_gt], 0), torch.cat([neg_pcd, neg2_pcd], 0)), dim=1)
+            "pos_indices": torch.stack([torch.from_numpy(gt_positive_choice_ids)[pos_gt],
+                                        torch.from_numpy(pcd_positive_choice_ids)[pos_pcd]], dim=1),
+            "neg_indices": torch.stack((
+                torch.cat([neg_gt, torch.from_numpy(gt_negative_choice_ids)[neg2_gt]], 0),
+                torch.cat([neg_pcd, neg2_pcd], 0)), dim=1)
         }
 
 

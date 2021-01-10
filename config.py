@@ -8,11 +8,12 @@ class Mode(Enum):
 
 class Config:
     batch_size = 2
-    num_workers = 2
+    num_workers = 0
     image_shape = (512, 512)
     model_path = "./data/sileane/gear/mesh.ply"
     path = "./data/sileane/gear"
     validation_frequency = 5
+    device = "cpu"
 
 
 class DefaultTraining:
@@ -33,6 +34,7 @@ class FeatureConfig(Config):
     neg_coef = 3.
     use_uniform_features = True
     meters_to_millimeters = 1000
+    quantization_size = 2.
 
 
 class SegmentationConfig(Config):

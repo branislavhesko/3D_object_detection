@@ -30,20 +30,23 @@ def find_model_opposite_points(coords_gt, coords_object, positive_distance_limit
     random_distribution = torch.distributions.exponential.Exponential(rate=5.)
     distance *= (1 - random_distribution.sample(sample_shape=distance.shape))
     furthest_points = torch.argmax(distance, dim=0)
+    choice = None
     if coords_object.shape[0] > max_size:
         choice = np.random.choice(coords_object.shape[0], int(max_size))
         coords_object = coords_object[choice, :]
     _, neg_pcd, correct_idx = find_positive_matches(coords_gt[furthest_points], coords_object, positive_distance_limit)
+    if choice is not None:
+        neg_pcd = torch.from_numpy(choice[neg_pcd])
     return torch.arange(coords_gt.shape[0])[correct_idx], neg_pcd
 
 
 def find_positive_matches(coords_gt, pcd, positive_distance_limit):
     c = coords_gt
     p = pcd
-    distance = torch.sqrt(torch.pow(c.unsqueeze(0) - p.unsqueeze(1), 2).sum(-1) + 1e-7)
-    closest_points = torch.argmin(distance, dim=0)
+    distance_ = torch.sqrt(torch.pow(c.unsqueeze(0) - p.unsqueeze(1), 2).sum(-1) + 1e-7)
+    closest_points = torch.argmin(distance_, dim=0)
     picked_gts = torch.arange(c.shape[0])
-    correct_idx = torch.where(distance[closest_points, picked_gts] < positive_distance_limit)
+    correct_idx = torch.where(distance_[closest_points, picked_gts] < positive_distance_limit)
     return picked_gts[correct_idx].cpu(), closest_points[correct_idx].cpu(), correct_idx
 
 
