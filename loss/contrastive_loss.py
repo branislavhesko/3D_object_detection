@@ -22,8 +22,8 @@ class PositiveContrastiveLoss(torch.nn.Module):
         self._config = config
 
     def forward(self, features_gt, features_object, positive_indices):
-        return distance(feats1=features_object[positive_indices[:, 1], :],
-                        feats2=features_gt[positive_indices[:, 0], :])
+        return distance(feats1=features_object[positive_indices[:, 1].long(), :],
+                        feats2=features_gt[positive_indices[:, 0].long(), :]).mean()
 
 
 class NegativeContrastiveLoss(torch.nn.Module):
@@ -32,8 +32,9 @@ class NegativeContrastiveLoss(torch.nn.Module):
         self._config = config
 
     def forward(self, features_model, features_pointcloud, negative_indices):
-        return self._config.neg_coef - torch.relu(distance(feats1=features_model[negative_indices[:, 1], :],
-                                                           feats2=features_pointcloud[negative_indices[:, 0], :]))
+        return self._config.neg_coef - torch.relu(
+            distance(feats1=features_pointcloud[negative_indices[:, 1].long(), :],
+                     feats2=features_model[negative_indices[:, 0].long(), :])).mean()
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ class FeatureTrainer(BaseTrainer):
         super(FeatureTrainer, self).__init__(config)
         self._model: ResUNet2 = RESUNET_MODELS[self._config.model](
             in_channels=self._config.in_channels, out_channels=self._config.out_channels,
-            conv1_kernel_size=self._config.conv1_kernel_size).to(self._config.device)
+            conv1_kernel_size=self._config.conv1_kernel_size, normalize_feature=True).to(self._config.device)
         self._optimizer = torch.optim.Adam(params=self._model.parameters(), lr=self._config.training.learning_rate,
                                            weight_decay=self._config.training.weight_decay)
         self._data_loaders = get_data_loaders(config=config)
@@ -37,6 +37,7 @@ class FeatureTrainer(BaseTrainer):
 
     def _train_single_epoch(self, epoch):
         for idx, data in enumerate(self._data_loaders[Mode.train]):
+            self._optimizer.zero_grad()
             for k, v in data.items():
                 if isinstance(v, torch.Tensor):
                     data[k] = v.to(self._config.device)
@@ -46,12 +47,16 @@ class FeatureTrainer(BaseTrainer):
             pcd_output = self._model(
                 ME.SparseTensor(coordinates=data[DataKeys.PCD_COORDS], features=data[DataKeys.PCD_FEATURES]))
             loss = self._loss(gt_output.F, pcd_output.F, data[DataKeys.POS_INDICES], data[DataKeys.NEG_INDICES])
-            print(loss.item())
+            loss.backward()
+            self._optimizer.step()
+            print("LOSS: {}".format(loss))
+            if idx % 10 == 0:
+                self.visualize(gt_output, pcd_output)
 
     def _validate(self, epoch):
         pass
 
-    def visualize(self, data):
+    def visualize(self, gt, pcd):
         pass
 
 

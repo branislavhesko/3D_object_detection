@@ -13,7 +13,7 @@ class Config:
     model_path = "./data/sileane/gear/mesh.ply"
     path = "./data/sileane/gear"
     validation_frequency = 5
-    device = "cpu"
+    device = "cuda"
 
 
 class DefaultTraining:
@@ -34,7 +34,7 @@ class FeatureConfig(Config):
     neg_coef = 3.
     use_uniform_features = True
     meters_to_millimeters = 1000
-    quantization_size = 2.
+    quantization_size = 4.
 
 
 class SegmentationConfig(Config):

@@ -27,5 +27,5 @@ class BaseTrainer(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def visualize(self, data):
+    def visualize(self, gt, pcd):
         pass

@@ -35,8 +35,8 @@ def collate_pair_fn(list_data):
             raise ValueError(f'Can not convert to torch tensor, {x}')
 
     for batch_id, _ in enumerate(coords0):
-        N0 = coords0[batch_id].shape[0]
-        N1 = coords1[batch_id].shape[0]
+        N1 = coords0[batch_id].shape[0]
+        N0 = coords1[batch_id].shape[0]
         trans_batch.append(to_tensor(trans[batch_id]))
 
         pos_indices_batch.append(
